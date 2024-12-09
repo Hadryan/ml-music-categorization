@@ -3,15 +3,11 @@ import numpy as np
 import librosa
 from mutagen.easyid3 import EasyID3
 
+from utils import clean_string
+
 SAMPLE_RATE = 44100
 HOP_LENGTH = 512
 
-def clean_string(value):
-    value = value.lower() 
-    value = re.sub(r'[^a-z0-9]', '_', value) 
-    value = re.sub(r'_+', '_', value) 
-    value = value.strip('_')
-    return value
 
 class TrackAnalyzer:
     def __init__(self, filename):
@@ -63,49 +59,29 @@ class TrackAnalyzer:
         self._calculate_onset_strength()
         self._calculate_dynamic_range()
 
-    def print_info(self):
-        """Print all extracted metadata and audio features."""
-        print(f"Artist: {self.artist}, Title: {self.title}, Tempo: {self.tempo}")
-        print(f"RMS: {self.rms_mean:.4f} (mean), {self.rms_std:.4f} (std)")
-        print(f"Spectral centroid: {self.cent_mean:.4f} (mean), {self.cent_std:.4f} (std)")
+    def get_features(self):
+        features = [
+            self.artist,
+            self.title,
+            self.genre,
+            self.tempo,
+            self.rms_mean, self.rms_std,
+            self.cent_mean, self.cent_std,
+            self.bandwidth_mean, self.bandwidth_std,
+            self.flatness_mean, self.flatness_std,
+            self.rolloff_mean, self.rolloff_std,
+            self.zcr_mean, self.zcr_std,
+            self.onset_strength_mean, self.onset_strength_std,
+            self.dynamic_range
+        ]
 
-        if self.chroma_stats:
-            for note, stats in self.chroma_stats.items():
-                print(f"{note} (mean): {stats['mean']:.4f}, {note} (std): {stats['std']:.4f}")
-        
-        if self.mfcc_stats:
-            for idx, stats in self.mfcc_stats.items():
-                print(f"MFCC-{idx + 1} (mean): {stats['mean']:.4f}, MFCC-{idx + 1} (std): {stats['std']:.4f}")
+        features.extend(self.chroma_stats)
+        features.extend(self.mfcc_stats)
+        features.extend(self.contrast_stats)
+        features.extend(self.tonnetz_stats)
+        features.extend(self.tempogram_ratio_stats)
 
-        if self.bandwidth_mean is not None:
-            print(f"Spectral Bandwidth (mean): {self.bandwidth_mean:.4f}, (std): {self.bandwidth_std:.4f}")
-
-        if self.contrast_stats is not None:
-            for i, stats in self.contrast_stats.items():
-                print(f"Spectral Contrast Band {i+1} (mean): {stats['mean']:.4f}, (std): {stats['std']:.4f}")
-
-        if self.flatness_mean is not None:
-            print(f"Spectral Flatness (mean): {self.flatness_mean:.4f}, (std): {self.flatness_std:.4f}")
-
-        if self.rolloff_mean is not None:
-            print(f"Spectral Rolloff (mean): {self.rolloff_mean:.4f}, (std): {self.rolloff_std:.4f}")
-
-        if self.tonnetz_stats is not None:
-            for i, stats in self.tonnetz_stats.items():
-                print(f"Tonnetz Dimension {i+1} (mean): {stats['mean']:.4f}, (std): {stats['std']:.4f}")
-
-        if self.zcr_mean is not None:
-            print(f"ZCR (mean): {self.zcr_mean:.4f}, (std): {self.zcr_std:.4f}")
-
-        if self.tempogram_ratio_stats is not None:
-            for i, stats in self.tempogram_ratio_stats.items():
-                print(f"Tempogram Ratio Factor {i+1} (mean): {stats['mean']:.4f}, (std): {stats['std']:.4f}")
-
-        if self.onset_strength_mean is not None:
-            print(f"Onset Strength (mean): {self.onset_strength_mean:.4f}, (std): {self.onset_strength_std:.4f}")
-
-        if self.dynamic_range is not None:
-            print(f"Dynamic Range (dB): {self.dynamic_range:.4f}")
+        return features
 
     def _load_metadata(self):
         """Load artist, title and genre metadata from the file."""
@@ -156,11 +132,7 @@ class TrackAnalyzer:
         means = np.mean(chroma_sync, axis=1)
         stds = np.std(chroma_sync, axis=1)
 
-        note_names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-        self.chroma_stats = {
-            note: {"mean": m, "std": s}
-            for note, m, s in zip(note_names, means, stds)
-        }
+        self.chroma_stats = list(means) + list(stds)
 
     def _calculate_mfcc_features(self):
         """Calculate beat-synchronized MFCC features and store their stats."""
@@ -170,10 +142,7 @@ class TrackAnalyzer:
         means = np.mean(mfcc_sync, axis=1)
         stds = np.std(mfcc_sync, axis=1)
 
-        self.mfcc_stats = {
-            idx: {"mean": m, "std": s}
-            for idx, (m, s) in enumerate(zip(means, stds))
-        }
+        self.mfcc_stats = list(means) + list(stds)
 
     def _calculate_spectral_bandwidth(self):
         sb = librosa.feature.spectral_bandwidth(y=self.audio, sr=self.sample_rate, hop_length=HOP_LENGTH)
@@ -187,10 +156,7 @@ class TrackAnalyzer:
         means = np.mean(sc_sync, axis=1)
         stds = np.std(sc_sync, axis=1)
 
-        self.contrast_stats = {
-            i: {"mean": m, "std": s}
-            for i, (m, s) in enumerate(zip(means, stds))
-        }
+        self.contrast_stats = list(means) + list(stds)
 
     def _calculate_spectral_flatness(self):
         sf = librosa.feature.spectral_flatness(y=self.audio, hop_length=HOP_LENGTH)
@@ -211,10 +177,7 @@ class TrackAnalyzer:
         tn_sync = librosa.util.sync(tn, self.beat_frames, aggregate=np.mean)
         means = np.mean(tn_sync, axis=1)
         stds = np.std(tn_sync, axis=1)
-        self.tonnetz_stats = {
-            i: {"mean": m, "std": s}
-            for i, (m, s) in enumerate(zip(means, stds))
-        }
+        self.tonnetz_stats = list(means) + list(stds)
 
     def _calculate_zcr(self):
         zcr = librosa.feature.zero_crossing_rate(y=self.audio, hop_length=HOP_LENGTH)
@@ -234,10 +197,7 @@ class TrackAnalyzer:
         means = np.mean(tgr_sync, axis=1)
         stds = np.std(tgr_sync, axis=1)
 
-        self.tempogram_ratio_stats = {
-            i: {"mean": m, "std": s}
-            for i, (m, s) in enumerate(zip(means, stds))
-        }
+        self.tempogram_ratio_stats = list(means) + list(stds)
 
     def _calculate_onset_strength(self):
         onset_env = librosa.onset.onset_strength(y=self.audio, sr=self.sample_rate, hop_length=HOP_LENGTH)
@@ -257,101 +217,3 @@ class TrackAnalyzer:
             self.dynamic_range = 20 * np.log10(peak_amplitude / self.rms_mean)
         else:
             self.dynamic_range = None
-
-
-# Example:
-# analyzer = TrackAnalyzer("Cloonee - What Ya Want (Extended).mp3")
-# analyzer.extract_features()
-# analyzer.print_info()
-
-def write_features_to_csv(analyzer, filename="track_features.csv"):
-    columns = []
-    values = []
-
-    # Add metadata
-    columns.append("artist")
-    values.append(analyzer.artist if analyzer.artist else "")
-    columns.append("title")
-    values.append(analyzer.title if analyzer.title else "")
-    columns.append("genre")
-    values.append(analyzer.genre if analyzer.artist else "")
-    columns.append("tempo")
-    values.append(analyzer.tempo if analyzer.tempo is not None else "")
-
-    # Add scalar features
-    scalar_features = {
-        "rms_mean": analyzer.rms_mean,
-        "rms_std": analyzer.rms_std,
-        "spectral_centroid_mean": analyzer.cent_mean,
-        "spectral_centroid_std": analyzer.cent_std,
-        "spectral_bandwidth_mean": analyzer.bandwidth_mean,
-        "spectral_bandwidth_std": analyzer.bandwidth_std,
-        "spectral_flatness_mean": analyzer.flatness_mean,
-        "spectral_flatness_std": analyzer.flatness_std,
-        "spectral_rolloff_mean": analyzer.rolloff_mean,
-        "spectral_rolloff_std": analyzer.rolloff_std,
-        "zcr_mean": analyzer.zcr_mean,
-        "zcr_std": analyzer.zcr_std,
-        "onset_strength_mean": analyzer.onset_strength_mean,
-        "onset_strength_std": analyzer.onset_strength_std,
-        "dynamic_range_db": analyzer.dynamic_range
-    }
-
-    for name, val in scalar_features.items():
-        columns.append(name)
-        values.append(val if val is not None else "")
-
-    # Add chroma features (12 notes)
-    if analyzer.chroma_stats is not None:
-        for note, stats in analyzer.chroma_stats.items():
-            columns.append(f"chroma_{note}_mean")
-            values.append(stats["mean"])
-            columns.append(f"chroma_{note}_std")
-            values.append(stats["std"])
-
-    # Add MFCC features (20 coefficients)
-    if analyzer.mfcc_stats is not None:
-        for i, stats in analyzer.mfcc_stats.items():
-            idx = i + 1
-            columns.append(f"mfcc_{idx}_mean")
-            values.append(stats["mean"])
-            columns.append(f"mfcc_{idx}_std")
-            values.append(stats["std"])
-
-    # Add spectral contrast features (7 bands)
-    if analyzer.contrast_stats is not None:
-        for i, stats in analyzer.contrast_stats.items():
-            band = i + 1
-            columns.append(f"spectral_contrast_band{band}_mean")
-            values.append(stats["mean"])
-            columns.append(f"spectral_contrast_band{band}_std")
-            values.append(stats["std"])
-
-    # Add tonnetz features (6 dimensions)
-    if analyzer.tonnetz_stats is not None:
-        for i, stats in analyzer.tonnetz_stats.items():
-            dim = i + 1
-            columns.append(f"tonnetz_{dim}_mean")
-            values.append(stats["mean"])
-            columns.append(f"tonnetz_{dim}_std")
-            values.append(stats["std"])
-
-    # Add tempogram ratio features
-    if analyzer.tempogram_ratio_stats is not None:
-        for i, stats in analyzer.tempogram_ratio_stats.items():
-            factor = i + 1
-            columns.append(f"tempogram_ratio_factor{factor}_mean")
-            values.append(stats["mean"])
-            columns.append(f"tempogram_ratio_factor{factor}_std")
-            values.append(stats["std"])
-
-    # Write to CSV file
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(",".join(str(col) for col in columns) + "\n") # TODO - will need to write header column seperatly
-        f.write(",".join(str(val) for val in values) + "\n")
-
-
-# Example usage:
-analyzer = TrackAnalyzer("Cloonee - What Ya Want (Extended).mp3")
-analyzer.extract_features()
-write_features_to_csv(analyzer, "track_features.csv")
