@@ -17,9 +17,9 @@ RANDOM_FOREST_N_ESTIMATORS = 100  # Number of trees in the Forest
 RANDOM_FOREST_MAX_DEPTH = 15   # Maximum depth of each tree
 RANDOM_FOREST_MIN_SAMPLES_SPLIT = 2  # Minimum samples to split a node
 
-TRAIN_TEST_SPLIT_RATIO = 0.15  # Test size
-FEATURE_SELECTION_TOP_N = 60  # Number of top features to select based on importance
-CLASS_MIN_SAMPLES = 10        # Minimum samples a class must have to be included in the model
+TRAIN_TEST_SPLIT_RATIO = 0.2  # Test size
+FEATURE_SELECTION_TOP_N = 50  # Number of top features to select based on importance
+CLASS_MIN_SAMPLES = 40        # Minimum samples a class must have to be included in the model
 
 # Grid Search Parameters
 GRID_SEARCH_CV = 3            # Number of cross-validation folds
