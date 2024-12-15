@@ -13,7 +13,7 @@ backup_interval_time = 15 * 60
 data_file = "data/track_features.csv"
 backup_file = "data/track_features_backup.csv"
 log_file = "data/processing_log.txt"
-path = r"D:\Music\DJ\Electronic\House"
+path = r"D:\Music\DJ\Electronic"
 root_directory = Path(path)
 
 logging.basicConfig(
