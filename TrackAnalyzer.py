@@ -1,4 +1,3 @@
-import re
 import numpy as np
 import librosa
 from mutagen.easyid3 import EasyID3
