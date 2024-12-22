@@ -71,7 +71,7 @@ class MusicDataAnalyzer:
         distribution.plot(kind='bar', title=title)
         plt.xlabel(target)
         plt.ylabel("Count")
-        plt.xticks(fontsize=10, rotation=45)
+        plt.xticks(fontsize=10, rotation=90)
         plt.tight_layout()
         plt.show()
 

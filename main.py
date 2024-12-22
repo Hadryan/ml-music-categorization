@@ -5,7 +5,8 @@ from GenreClassifier import GenreClassifier
 from MusicDataAnalyzer import MusicDataAnalyzer
 from TrackClusterer import TrackClusterer
 from constants import CLASS_MIN_SAMPLES, GRID_SEARCH_CV, GRID_SEARCH_N_JOBS, K_MIN, K_MAX, USE_PCA, \
-    GENRE_MAP, IRRELEVANT_FEATURES
+    GENRE_MAP, IRRELEVANT_FEATURES, VARIANCE_THRESHOLD, CORRELATION_THRESHOLD, PARAM_GRID, SCORING, PCA_COMPONENTS, \
+    RFE_FEATURES
 
 
 def run_supervised(df):
@@ -14,7 +15,7 @@ def run_supervised(df):
     # Preprocess data
     preprocessor = DataPreprocessor(df)
     preprocessor.drop_columns(['artist', 'title'])
-    preprocessor.map_genres()
+    # preprocessor.map_genres()
 
     # Filter underrepresented genres by a certain threshold
     preprocessor.filter_rare_classes(target_col='genre', min_samples=CLASS_MIN_SAMPLES)
@@ -44,17 +45,10 @@ def run_supervised(df):
         top_features=preprocessor.top_features
     )
 
-    # Hyperparameter tuning
-    param_grid = {
-        'n_estimators': [100, 200],
-        'max_depth': [None, 10, 20],
-        'min_samples_split': [2, 5]
-    }
-
     classifier.tune_model_with_grid_search(
-        param_grid=param_grid,
+        param_grid=PARAM_GRID,
         cv=GRID_SEARCH_CV,
-        scoring='accuracy',
+        scoring=SCORING,
         n_jobs=GRID_SEARCH_N_JOBS
     )
 
@@ -119,20 +113,21 @@ def main():
 
     # Explore data
     music_data_analyzer = MusicDataAnalyzer(df)
-    music_data_analyzer.extract_chord_patterns()
-    music_data_analyzer.display_class_distribution(target="genre")
-    music_data_analyzer.display_class_distribution("genre", figsize=(10, 8), genre_map=GENRE_MAP)
-    music_data_analyzer.display_statistics()
-    music_data_analyzer.display_correlations()
-    music_data_analyzer.plot_feature_histograms()
-    music_data_analyzer.display_box_plots()
-    music_data_analyzer.display_outliers()
+    # music_data_analyzer.display_shape()
+    # music_data_analyzer.extract_chord_patterns()
+    # music_data_analyzer.display_class_distribution(target="genre")
+    # music_data_analyzer.display_class_distribution("genre", figsize=(10, 8), genre_map=GENRE_MAP)
+    # music_data_analyzer.display_statistics()
+    # music_data_analyzer.display_correlations()
+    # music_data_analyzer.plot_feature_histograms()
+    # music_data_analyzer.display_box_plots()
+    # music_data_analyzer.display_outliers()
 
     # 1: Run supervised model
-    run_supervised(df)
+    # run_supervised(df)
 
     # 2: Run unsupervised model
-    # run_unsupervised(df, music_data_analyzer)
+    run_unsupervised(df, music_data_analyzer)
 
 if __name__ == '__main__':
     main()
